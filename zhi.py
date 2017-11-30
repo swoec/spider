@@ -14,11 +14,16 @@ except:
 import re
 import time
 import os.path
+import math
 try:
     from PIL import Image
 except:
     pass
-
+import sys
+sys.setrecursionlimit(1000000)
+import time  
+import random  
+from spider import db 
 
 # 构造 Request headers
 agent = 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0'
@@ -134,43 +139,115 @@ except:
 
 
 dicq=dict()
-def spider(url):
-    
+def newspider(url):
+    time.sleep(1)#停顿一秒
     if isLogin():
         myurl =url
+        
         dicq[myurl]='1'
+        
         post=session.get(myurl, headers=headers)
         post.encoding = 'utf-8'
         soup = BeautifulSoup(post.text, 'lxml')
         print '  '
         print '  '
+        print len(dicq)
+        
         if  soup.find('span',class_="ProfileHeader-name").text:
-            print soup.find('span',class_="ProfileHeader-name").text
+                 print soup.find('span',class_="ProfileHeader-name").text
+                 url = soup.find('span',class_="ProfileHeader-name").text
         if  soup.find('span',class_="RichText") :
-            print soup.find('span',class_="RichText").text
-        #print soup.find('div',class_="ProfileHeader-iconWrapper")
+                 print soup.find('span',class_="RichText").text
+                 content = soup.find('span',class_="RichText").text
+        else:
+                 content = ''
+            
+        db2=db()
+        db2.insert(url.encode('utf-8'),content.encode('utf-8'))
         
-        #print soup.find('span',class_="ProfileHeader-detailLabel").text
-        #print soup.find('div',class_="RichText.ProfileHeader-detailValue")
+        #print soup.find('div',class_="NumberBoard-value").text
+        dot = soup.find('div',class_="NumberBoard-value").text
+        #print dot
+        dit = (int(bytes(dot.strip()))/20)+1
+       # print dit
+        for k in range(1,dit):
+            #print k
+            feturl=myurl+'?page='+str(k)
+            print '  '
+            print feturl
+            fpost=session.get(feturl, headers=headers)
+            fpost.encoding = 'utf-8'
+            fsoup = BeautifulSoup(fpost.text, 'lxml')
+            
+            #print soup.find('span',class_="ProfileHeader-detailLabel").text
+            #print soup.find('div',class_="RichText.ProfileHeader-detailValue")
         
-        for i in soup.find_all('a',class_="UserLink-link"):
-            #print '***!!!---------',i.get('href')
-            reurl='https://www.zhihu.com'+i.get('href')+'/following'
-            #print reurl
-            if dicq.get(reurl)=='1':
-               continue
-            else:
-               spider(reurl)
+            for i in fsoup.find_all('a',class_="UserLink-link"):
+                #print '***!!!---------',i.get('href')
+                reurl='https://www.zhihu.com'+i.get('href')+'/following'
+                #print reurl
+                if dicq.get(reurl)=='1':
+                   continue
+                else:
+                   
+                   newspider(reurl)
             
            
     else:
         account = input('请输入你的用户名\n>  ')
         secret = input("请输入你的密码\n>  ")
         login(secret, account)
+        
+def fetchfriend(url):
+      if isLogin():
+            myurl =url
+        
+            dicq[myurl]='1'
+        
+            post=session.get(myurl, headers=headers)
+            post.encoding = 'utf-8'
+            soup = BeautifulSoup(post.text, 'lxml')
+            dot = soup.find('div',class_="NumberBoard-value").text
+            print dot
+            com =int(bytes(dot.strip()))
+            if com <20:
+                dit = 2;
+            else:
+                dit = (int(bytes(dot.strip()))/20)+2
+            # print dit
+            for k in range(1,dit):
+                #print k
+                feturl=myurl+'?page='+str(k)
+                print '  '
+                print feturl
+                fpost=session.get(feturl, headers=headers)
+                fpost.encoding = 'utf-8'
+                fsoup = BeautifulSoup(fpost.text, 'lxml')
+                #print fsoup.find_all('a',class_="UserLink-link")
+                for i in fsoup.find_all('a',class_="UserLink-link"):
+                #print '***!!!---------',i.get('href')
+                    print i
+                    reurl='https://www.zhihu.com'+i.get('href')+'/activities'
+                    apost=session.get(reurl, headers=headers)
+                    apost.encoding = 'utf-8'
+                    asoup = BeautifulSoup(apost.text, 'lxml')
+                    #print asoup
+                    if  asoup.find('span',class_="ProfileHeader-name").text:
+                        print asoup.find('span',class_="ProfileHeader-name").text
+                        url = asoup.find('span',class_="ProfileHeader-name").text
+                    if  asoup.find('span',class_="RichText") :
+                        print asoup.find('span',class_="RichText").text
+                        content = asoup.find('span',class_="RichText").text
+                    else:
+                        content = ''
+            
+                    db2=db()
+                    db2.insert(url.encode('utf-8'),content.encode('utf-8'))
 
 
 if __name__ == '__main__':
-    myurl ='https://www.zhihu.com/people/alexwong-14/following'
-    spider(myurl)
+    myurl ='https://www.zhihu.com/people/bozonghua/following'
+    #newspider(myurl)
+    fetchfriend(myurl)
         
    
